@@ -1,0 +1,226 @@
+{
+  "entities": {
+    "User": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "User",
+      "type": "object",
+      "description": "Represents a user of the AI Quiz Generator Website.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the user entity."
+        },
+        "gmailId": {
+          "type": "string",
+          "description": "User's Gmail address used for authentication.",
+          "format": "email"
+        },
+        "fullName": {
+          "type": "string",
+          "description": "User's full name."
+        },
+        "profession": {
+          "type": "string",
+          "description": "User's profession (optional)."
+        },
+        "age": {
+          "type": "number",
+          "description": "User's age (optional)."
+        },
+        "password": {
+          "type": "string",
+          "description": "User's password for direct login. If null, OTP is required."
+        }
+      },
+      "required": [
+        "id",
+        "gmailId",
+        "fullName"
+      ]
+    },
+    "Quiz": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Quiz",
+      "type": "object",
+      "description": "Represents a quiz created by a user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the quiz entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N Quiz)"
+        },
+        "topic": {
+          "type": "string",
+          "description": "The topic of the quiz."
+        },
+        "creationDate": {
+          "type": "string",
+          "description": "Date and time when the quiz was created.",
+          "format": "date-time"
+        },
+        "quizData": {
+          "type": "string",
+          "description": "The quiz data.  Can be JSON or text format"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "topic",
+        "creationDate",
+        "quizData"
+      ]
+    },
+    "QuizResult": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "QuizResult",
+      "type": "object",
+      "description": "Represents the result of a user taking a quiz.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the quiz result entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:N QuizResult)"
+        },
+        "quizId": {
+          "type": "string",
+          "description": "Reference to Quiz. (Relationship: Quiz 1:N QuizResult)"
+        },
+        "score": {
+          "type": "number",
+          "description": "The user's score on the quiz."
+        },
+        "completionDate": {
+          "type": "string",
+          "description": "Date and time when the quiz was completed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "quizId",
+        "score",
+        "completionDate"
+      ]
+    },
+    "ApiKey": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ApiKey",
+      "type": "object",
+      "description": "Stores the Gemini API key for a specific user.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the API key entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to User. (Relationship: User 1:1 ApiKey)"
+        },
+        "apiKey": {
+          "type": "string",
+          "description": "The Gemini API key."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "apiKey"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "User",
+          "schema": {
+            "$ref": "#/backend/entities/User"
+          },
+          "description": "Stores user profiles. Authorization is based on the user ID in the path (request.auth.uid == userId).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/quizzes/{quizId}",
+        "definition": {
+          "entityName": "Quiz",
+          "schema": {
+            "$ref": "#/backend/entities/Quiz"
+          },
+          "description": "Stores quizzes created by a specific user. Authorization is based on the user ID in the path (request.auth.uid == userId).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "quizId",
+              "description": "The unique identifier for the quiz."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/quizResults/{quizResultId}",
+        "definition": {
+          "entityName": "QuizResult",
+          "schema": {
+            "$ref": "#/backend/entities/QuizResult"
+          },
+          "description": "Stores quiz results for a specific user. Authorization is based on the user ID in the path (request.auth.uid == userId).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "quizResultId",
+              "description": "The unique identifier for the quiz result."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/apiKeys/{apiKeyId}",
+        "definition": {
+          "entityName": "ApiKey",
+          "schema": {
+            "$ref": "#/backend/entities/ApiKey"
+          },
+          "description": "Stores the API key for a specific user. Authorization is based on the user ID in the path (request.auth.uid == userId).",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier for the user."
+            },
+            {
+              "name": "apiKeyId",
+              "description": "The unique identifier for the API key."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "This Firestore structure prioritizes security and scalability for the AI Quiz Generator Website, focusing on user-owned data and eliminating the need for complex authorization rules. Authorization Independence is achieved by leveraging path-based ownership for user data. Guest mode is supported by using the anonymous auth provider.\n\n*   `/users/{userId}`: Stores user profiles, enabling direct ownership-based rules. This allows simple rules like `request.auth.uid == userId`.\n*   `/users/{userId}/quizzes/{quizId}`: Quizzes are stored as subcollections of users, directly associating them with their creators and enabling simple access control.\n*   `/users/{userId}/quizResults/{quizResultId}`: Quiz results are stored as subcollections of users, ensuring only the user can access their own results.\n*   `/users/{userId}/apiKeys/{apiKeyId}`: API Keys are specific to individual users, enforcing that only the user can manage their API key.\n\nThis structure ensures that all documents within a collection have the same security requirements, simplifying rule creation. It also supports listing operations (QAPs) securely, as access is always determined by the user ID in the path."
+  }
+}

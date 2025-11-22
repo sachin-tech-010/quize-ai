@@ -1,0 +1,157 @@
+/**
+ * This ruleset enforces a strict user-ownership security model for an AI Quiz application.
+ *
+ * Core Philosophy:
+ * The security model is built on the principle that users own and control their own data.
+ * All user-generated content, including profiles, quizzes, results, and API keys, is
+ * private and accessible only to the authenticated user who created it. There is no
+ * public or shared data. Guest users, using anonymous authentication, are treated
+ * as regular users who own their data for the duration of their session.
+ *
+ * Data Structure:
+ * All application data is hierarchically organized under the `/users/{userId}` collection.
+ * This structure inherently links data to its owner, simplifying security rules by
+ * allowing ownership checks based on the document path.
+ *   - `/users/{userId}`: User profile.
+ *   - `/users/{userId}/quizzes/{quizId}`: Quizzes created by the user.
+ *   - `/users/{userId}/quizResults/{quizResultId}`: Results of quizzes taken by the user.
+ *   - `/users/{userId}/apiKeys/{apiKeyId}`: Sensitive API keys for the user.
+ *
+ * Key Security Decisions:
+ * - Strict Ownership: All read and write operations require the requesting user's UID
+ *   to match the `{userId}` in the document path.
+ * - No User Enumeration: Listing documents in the top-level `/users` collection is
+ *   explicitly disallowed to protect user privacy.
+ * - Relational Integrity: On creation, documents in subcollections must contain a
+ *   `userId` field that matches the `userId` in their path, ensuring data consistency.
+ *   This `userId` field is enforced as immutable on updates.
+ * - Denormalization for Authorization: The hierarchical structure acts as a form of
+ *   denormalization for authorization, as the ownership (`userId`) is part of the path,
+ *   avoiding the need for costly `get()` calls to other documents to verify permissions.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ------------------------------------------------------------------------
+    // Helper Functions
+    // ------------------------------------------------------------------------
+
+    /**
+     * Checks if the user is authenticated. This includes regular and anonymous users.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * Checks if the requesting user's UID matches the provided userId from the path.
+     * This is the primary function for enforcing data ownership.
+     */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /**
+     * Verifies ownership for an existing document. Used for update and delete
+     * operations to prevent acting on non-existent data.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+
+    /**
+     * Validates required ownership fields for a new user document on creation.
+     */
+    function isNewUserValid(userId) {
+      return request.resource.data.id == userId;
+    }
+
+    /**
+     * Validates that the internal `userId` is not changed on update.
+     * In prototyping mode, we only protect fields critical for security.
+     */
+    function isUserUpdateValid() {
+      return request.resource.data.id == resource.data.id;
+    }
+
+    /**
+     * Validates required ownership fields for a new subcollection document (e.g., Quiz).
+     */
+    function isNewSubcollectionDocValid(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    /**
+     * Validates that the internal `userId` is not changed on update for a subcollection document.
+     */
+    function isSubcollectionDocUpdateValid() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+
+    // ------------------------------------------------------------------------
+    // Collection Rules
+    // ------------------------------------------------------------------------
+
+    /**
+     * @description Manages user profile documents.
+     * @path /users/{userId}
+     * @allow (create) An authenticated user creating their own profile document.
+     * @deny (list) Any user attempting to list all user profiles.
+     * @principle Restricts access to a user's own data tree and allows self-creation of a profile.
+     */
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow list: if false; // Disallow user enumeration for privacy.
+      allow create: if isOwner(userId) && isNewUserValid(userId);
+      allow update: if isExistingOwner(userId) && isUserUpdateValid();
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description Manages quizzes owned by a specific user.
+       * @path /users/{userId}/quizzes/{quizId}
+       * @allow (create) An authenticated user creating a quiz for themselves.
+       * @deny (get) Another user trying to read this user's quiz.
+       * @principle Enforces document ownership for all operations within a user's private subcollection.
+       */
+      match /quizzes/{quizId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isNewSubcollectionDocValid(userId);
+        allow update: if isExistingOwner(userId) && isSubcollectionDocUpdateValid();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Manages quiz results for a specific user.
+       * @path /users/{userId}/quizResults/{quizResultId}
+       * @allow (list) An authenticated user listing their own quiz results.
+       * @deny (update) Another user trying to modify this user's quiz result.
+       * @principle Enforces document ownership for all operations within a user's private subcollection.
+       */
+      match /quizResults/{quizResultId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isNewSubcollectionDocValid(userId);
+        allow update: if isExistingOwner(userId) && isSubcollectionDocUpdateValid();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Manages sensitive API keys for a specific user.
+       * @path /users/{userId}/apiKeys/{apiKeyId}
+       * @allow (get) An authenticated user reading their own API key.
+       * @deny (create) Another user trying to create an API key for this user.
+       * @principle Enforces strict document ownership for sensitive data within a user's private subcollection.
+       */
+      match /apiKeys/{apiKeyId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId) && isNewSubcollectionDocValid(userId);
+        allow update: if isExistingOwner(userId) && isSubcollectionDocUpdateValid();
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+  }
+}
