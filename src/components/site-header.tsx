@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BrainCircuit } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "./theme-toggle";
 
 export function SiteHeader() {
   return (
@@ -28,6 +29,7 @@ export function SiteHeader() {
             </Link>
         </nav>
         <div className="flex flex-1 items-center justify-end space-x-2">
+           <ThemeToggle />
           <Button asChild className="bg-accent text-accent-foreground hover:bg-accent/90">
             <Link href="/auth">Get Started</Link>
           </Button>

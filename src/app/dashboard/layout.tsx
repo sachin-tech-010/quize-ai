@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { LayoutDashboard, History, LogOut } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 
 export default function DashboardLayout({
@@ -114,6 +115,7 @@ export default function DashboardLayout({
                     {pathname.includes('history') ? 'Quiz History' : 'Dashboard'}
                 </h1>
             </div>
+            <ThemeToggle />
         </header>
         <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-secondary/50">
             {children}
