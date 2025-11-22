@@ -24,9 +24,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LayoutDashboard, History, LogOut } from "lucide-react";
+import { LayoutDashboard, History, LogOut, User } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { useAuth, useUser } from "@/firebase";
+import { signOut } from "firebase/auth";
+import { useToast } from "@/hooks/use-toast";
 
 
 export default function DashboardLayout({
@@ -37,11 +40,39 @@ export default function DashboardLayout({
   const pathname = usePathname();
   const router = useRouter();
   const userAvatar = PlaceHolderImages.find(p => p.id === 'user-avatar');
+  const { user } = useUser();
+  const auth = useAuth();
+  const { toast } = useToast();
 
-  const handleLogout = () => {
-    // Simulate logout
+  const handleLogout = async () => {
+    if (user?.isAnonymous) {
+      // Clear local storage for guest
+      // In a real app, you might want to be more specific about what you clear
+      localStorage.clear();
+    }
+    
+    await signOut(auth);
+    toast({ title: "Logged out", description: "You have been successfully logged out." });
     router.push('/');
   }
+
+  const getAvatarFallback = () => {
+    if (user?.isAnonymous) return "G";
+    if (user?.displayName) return user.displayName.charAt(0).toUpperCase();
+    if (user?.email) return user.email.charAt(0).toUpperCase();
+    return "U";
+  }
+  
+  const getUserName = () => {
+    if (user?.isAnonymous) return "Guest User";
+    return user?.displayName || user?.email || "User";
+  }
+
+  const getUserEmail = () => {
+    if (user?.isAnonymous) return "guest@example.com";
+    return user?.email || "";
+  }
+
 
   return (
     <SidebarProvider>
@@ -87,12 +118,14 @@ export default function DashboardLayout({
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="h-auto w-full justify-start gap-2 p-2">
                      <Avatar className="h-9 w-9">
-                        {userAvatar && <AvatarImage src={userAvatar.imageUrl} alt={userAvatar.description} data-ai-hint={userAvatar.imageHint} />}
-                        <AvatarFallback>JD</AvatarFallback>
+                        {user?.photoURL ? <AvatarImage src={user.photoURL} alt="User avatar" /> :
+                         (userAvatar && !user?.isAnonymous && <AvatarImage src={userAvatar.imageUrl} alt={userAvatar.description} data-ai-hint={userAvatar.imageHint} />)
+                        }
+                        <AvatarFallback>{getAvatarFallback()}</AvatarFallback>
                     </Avatar>
-                    <div className="text-left group-data-[collapsible=icon]:hidden">
-                        <p className="text-sm font-medium">John Doe</p>
-                        <p className="text-xs text-muted-foreground">john.doe@gmail.com</p>
+                    <div className="text-left group-data-[collapsible=icon]:hidden truncate">
+                        <p className="text-sm font-medium truncate">{getUserName()}</p>
+                        <p className="text-xs text-muted-foreground truncate">{getUserEmail()}</p>
                     </div>
                 </Button>
             </DropdownMenuTrigger>
