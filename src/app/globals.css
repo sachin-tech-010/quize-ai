@@ -76,41 +76,6 @@ body {
     --sidebar-border: 217.2 32.6% 17.5%;
     --sidebar-ring: 204 86% 68%;
   }
-  .neon {
-    --background: 230 20% 5%;
-    --foreground: 210 40% 98%;
-    --card: 230 20% 10%;
-    --card-foreground: 210 40% 98%;
-    --popover: 230 20% 7%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 260 100% 70%; /* Neon Purple */
-    --primary-foreground: 210 40% 98%;
-    --secondary: 230 20% 15%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 230 20% 20%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 180 100% 50%; /* Neon Cyan */
-    --accent-foreground: 230 20% 5%;
-    --destructive: 350 100% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 260 100% 30%;
-    --input: 260 100% 20%;
-    --ring: 260 100% 75%;
-    --chart-1: 260 100% 70%;
-    --chart-2: 180 100% 50%;
-    --chart-3: 350 100% 60%;
-    --chart-4: 50 100% 50%;
-    --chart-5: 120 100% 50%;
-    --radius: 0.5rem;
-    --sidebar-background: 230 20% 5%;
-    --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 260 100% 70%;
-    --sidebar-primary-foreground: 210 40% 98%;
-    --sidebar-accent: 230 20% 15%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 260 100% 30%;
-    --sidebar-ring: 260 100% 75%;
-  }
 }
 
 @layer base {
