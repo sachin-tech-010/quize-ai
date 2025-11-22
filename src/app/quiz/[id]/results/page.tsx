@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useMemo, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams, useParams } from "next/navigation";
 import Link from "next/link";
 import { getQuiz } from "@/lib/quiz-store";
 import { summarizeQuizResults } from "@/ai/flows/summarize-quiz-results";
@@ -25,9 +25,11 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 
-function ResultsComponent({ params }: { params: { id: string } }) {
+function ResultsComponent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const params = useParams();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [summary, setSummary] = useState<string>("");
@@ -35,19 +37,21 @@ function ResultsComponent({ params }: { params: { id: string } }) {
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
 
   useEffect(() => {
-    const loadedQuiz = getQuiz(params.id);
-    const answersParam = searchParams.get('answers');
-    
-    if (loadedQuiz && answersParam) {
-        setQuiz(loadedQuiz);
-        try {
-            setUserAnswers(JSON.parse(answersParam));
-        } catch {
-            // Handle parsing error
-        }
+    if (id) {
+      const loadedQuiz = getQuiz(id);
+      const answersParam = searchParams.get('answers');
+      
+      if (loadedQuiz && answersParam) {
+          setQuiz(loadedQuiz);
+          try {
+              setUserAnswers(JSON.parse(answersParam));
+          } catch {
+              // Handle parsing error
+          }
+      }
     }
     setIsLoading(false);
-  }, [params.id, searchParams]);
+  }, [id, searchParams]);
 
   const { score, resultsData, correctAnswersList, userAnswersList } = useMemo(() => {
     if (!quiz) return { score: 0, resultsData: [], correctAnswersList: [], userAnswersList: [] };
@@ -161,7 +165,7 @@ function ResultsComponent({ params }: { params: { id: string } }) {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-2 justify-center pt-4">
-            <Button onClick={() => router.push(`/quiz/${params.id}`)}><RefreshCw className="mr-2 h-4 w-4"/> Play Again</Button>
+            <Button onClick={() => router.push(`/quiz/${id}`)}><RefreshCw className="mr-2 h-4 w-4"/> Play Again</Button>
             <Button variant="outline" asChild><Link href="/dashboard">Back to Dashboard</Link></Button>
           </div>
         </CardContent>
@@ -173,7 +177,7 @@ function ResultsComponent({ params }: { params: { id: string } }) {
 export default function QuizResultsPage({ params }: { params: { id: string } }) {
     return (
         <Suspense fallback={<div className="flex min-h-dvh items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>}>
-            <ResultsComponent params={params} />
+            <ResultsComponent />
         </Suspense>
     )
 }

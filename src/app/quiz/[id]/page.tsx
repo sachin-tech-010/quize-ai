@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 import { getQuiz } from "@/lib/quiz-store";
 import type { Quiz } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
@@ -14,19 +14,23 @@ import { Loader2, AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { BrainCircuit } from "@/components/icons";
 
-export default function QuizPlayerPage({ params }: { params: { id: string } }) {
+export default function QuizPlayerPage() {
   const [quiz, setQuiz] = useState<Quiz | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeQuestion, setActiveQuestion] = useState(0);
   const [userAnswers, setUserAnswers] = useState<Record<number, string>>({});
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const router = useRouter();
+  const params = useParams();
+  const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
   useEffect(() => {
-    const loadedQuiz = getQuiz(params.id);
-    setQuiz(loadedQuiz);
+    if (id) {
+      const loadedQuiz = getQuiz(id);
+      setQuiz(loadedQuiz);
+    }
     setIsLoading(false);
-  }, [params.id]);
+  }, [id]);
 
   if (isLoading) {
     return (
@@ -67,7 +71,7 @@ export default function QuizPlayerPage({ params }: { params: { id: string } }) {
         const query = new URLSearchParams({
             answers: JSON.stringify(newAnswers)
         }).toString();
-        router.push(`/quiz/${params.id}/results?${query}`);
+        router.push(`/quiz/${id}/results?${query}`);
       }
     }
   };
