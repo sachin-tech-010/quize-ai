@@ -1,3 +1,28 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "hero-image",
+      "description": "Abstract AI brain visualization",
+      "imageUrl": "https://images.unsplash.com/photo-1679639539537-0d2e452890f7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxicmFpbiUyMGFpfGVufDB8fHx8MTc2Mzc5MjI5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "brain ai"
+    },
+    {
+      "id": "science-demo",
+      "description": "A science beaker for the science quiz demo",
+      "imageUrl": "https://images.unsplash.com/photo-1669643218360-f377ea8ef1f0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxzY2llbmNlJTIwYmVha2VyfGVufDB8fHx8MTc2Mzc5MjI5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "science beaker"
+    },
+    {
+      "id": "history-demo",
+      "description": "An ancient scroll for the history quiz demo",
+      "imageUrl": "https://images.unsplash.com/photo-1734357288506-5271d99f306c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxoaXN0b3J5JTIwc2Nyb2xsfGVufDB8fHx8MTc2Mzc5MjI5Mnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "history scroll"
+    },
+    {
+      "id": "user-avatar",
+      "description": "A generic user avatar",
+      "imageUrl": "https://images.unsplash.com/photo-1521119989659-a83eee488004?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxwZXJzb24lMjBwb3J0cmFpdHxlbnwwfHx8fDE3NjM3MTEyNTR8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "person portrait"
+    }
+  ]
 }
