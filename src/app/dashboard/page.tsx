@@ -40,6 +40,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
 import { getQuiz, saveQuiz } from "@/lib/quiz-store";
+import { useFirestore, useUser, addDocumentNonBlocking } from "@/firebase";
+import { collection } from "firebase/firestore";
 
 
 const aiFormSchema = z.object({
@@ -66,10 +68,14 @@ export default function DashboardPage() {
     const [isGenerating, setIsGenerating] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+    const { user } = useUser();
+    const firestore = useFirestore();
 
     useEffect(() => {
         const lastQuizId = localStorage.getItem(LAST_QUIZ_ID_KEY);
         if (lastQuizId) {
+            // For guests, quiz is only in local storage.
+            // For logged-in users, it might be in local storage temporarily, but history is the source of truth.
             const quiz = getQuiz(lastQuizId);
             if (quiz) {
                 setGeneratedQuiz(quiz);
@@ -93,6 +99,14 @@ export default function DashboardPage() {
         control: manualForm.control,
         name: "questions"
     });
+    
+    const saveQuizForUser = (quizData: Omit<Quiz, 'id'>) => {
+      if (user && !user.isAnonymous) {
+          const quizzesColRef = collection(firestore, `users/${user.uid}/quizzes`);
+          // We don't block on this. It will save in the background.
+          addDocumentNonBlocking(quizzesColRef, quizData);
+      }
+    }
 
     async function onAiSubmit(values: z.infer<typeof aiFormSchema>) {
         if (!apiKey) {
@@ -108,8 +122,7 @@ export default function DashboardPage() {
                 throw new Error("AI returned an invalid or empty quiz format.");
             }
 
-            const quizData: Quiz = {
-                id: `quiz-${Date.now()}`,
+            const newQuizData: Omit<Quiz, 'id'> = {
                 topic: values.topic,
                 dateCreated: new Date().toISOString(),
                 questions: result.quiz.map((q: QuizQuestion) => ({
@@ -118,9 +131,18 @@ export default function DashboardPage() {
                     answer: q.answer
                 }))
             };
-            saveQuiz(quizData);
+
+            const quizIdWithTimestamp = `quiz-${Date.now()}`;
+            const quizData: Quiz = {
+                ...newQuizData,
+                id: quizIdWithTimestamp,
+            }
+
+            saveQuiz(quizData); // Save to local storage for session persistence
             localStorage.setItem(LAST_QUIZ_ID_KEY, quizData.id);
             setGeneratedQuiz(quizData);
+            saveQuizForUser(newQuizData);
+
             toast({ title: "Quiz Generated!", description: `Your quiz on ${values.topic} is ready.` });
         } catch (error) {
             console.error(error);
@@ -136,15 +158,23 @@ export default function DashboardPage() {
             answer: q.options[parseInt(q.answer, 10)]
         }));
 
-        const quizData: Quiz = {
-            id: `quiz-manual-${Date.now()}`,
+        const newQuizData: Omit<Quiz, 'id'> = {
             topic: values.topic,
             dateCreated: new Date().toISOString(),
             questions: processedQuestions
         };
+
+        const quizIdWithTimestamp = `quiz-manual-${Date.now()}`;
+        const quizData: Quiz = {
+            ...newQuizData,
+            id: quizIdWithTimestamp
+        };
+        
         saveQuiz(quizData);
         localStorage.setItem(LAST_QUIZ_ID_KEY, quizData.id);
         setGeneratedQuiz(quizData);
+        saveQuizForUser(newQuizData);
+
         toast({ title: "Quiz Created!", description: `Your quiz on ${values.topic} is ready.` });
     }
     

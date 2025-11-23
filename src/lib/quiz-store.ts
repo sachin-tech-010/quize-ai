@@ -3,7 +3,8 @@
 import type { Quiz } from './types';
 
 // In a real application, this would be a database.
-// We use a combination of a static object and localStorage to mock data persistence.
+// We use a combination of a static object and localStorage to mock data persistence for guests.
+// For logged-in users, data is fetched from Firestore.
 
 const staticDemoQuizzes: Record<string, Quiz> = {
     "demo-science": {
@@ -34,10 +35,13 @@ export function getQuiz(id: string): Quiz | null {
             return JSON.parse(storedQuiz);
         } catch (e) {
             console.error("Failed to parse quiz from localStorage", e);
+            // In a real app, you might try to fetch from Firestore as a fallback for a logged-in user.
             return null;
         }
     }
     
+    // If not in local storage, a logged-in user's quiz would be fetched from Firestore on the history page.
+    // For direct access via URL, the quiz must be in local storage.
     return null;
 }
 

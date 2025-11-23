@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Download, Play, BarChart2 } from "lucide-react";
+import { Download, Play, BarChart2, Loader2, AlertTriangle, BookDashed } from "lucide-react";
 import type { Quiz } from "@/lib/types";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar, Tooltip } from "recharts";
 import {
@@ -29,37 +29,9 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useRouter } from "next/navigation";
+import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
+import { collection } from 'firebase/firestore';
 
-
-const mockHistory: Quiz[] = [
-  {
-    id: "demo-science",
-    topic: "JavaScript Closures",
-    dateCreated: "2024-07-28T10:00:00Z",
-    questions: [],
-    lastResult: 80,
-  },
-  {
-    id: "hist-2",
-    topic: "Roman Empire",
-    dateCreated: "2024-07-27T15:30:00Z",
-    questions: [],
-    lastResult: 95,
-  },
-  {
-    id: "hist-3",
-    topic: "World Capitals",
-    dateCreated: "2024-07-26T09:00:00Z",
-    questions: [],
-    lastResult: 50,
-  },
-  {
-    id: "hist-4",
-    topic: "Photosynthesis",
-    dateCreated: "2024-07-25T18:45:00Z",
-    questions: [],
-  },
-];
 
 const mockProgressData = [
     { name: 'Attempt 1', score: 60 },
@@ -87,10 +59,51 @@ function ClientFormattedDate({ dateString }: { dateString: string }) {
 
 export default function HistoryPage() {
     const router = useRouter();
+    const { user } = useUser();
+    const firestore = useFirestore();
+
+    const quizzesQuery = useMemoFirebase(() => {
+        if (!user || user.isAnonymous) return null;
+        return collection(firestore, `users/${user.uid}/quizzes`);
+    }, [firestore, user]);
+
+    const { data: history, isLoading, error } = useCollection<Quiz>(quizzesQuery);
 
     const handlePlay = (quizId: string) => {
         router.push(`/quiz/${quizId}`);
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex items-center justify-center h-full">
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+        );
+    }
+    
+    if (error) {
+        return (
+             <div className="flex flex-col items-center justify-center h-full text-center">
+                <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
+                <h2 className="text-xl font-semibold">Error Loading History</h2>
+                <p className="text-muted-foreground max-w-sm">
+                    There was a problem fetching your quiz history. Please check your connection and try again.
+                </p>
+            </div>
+        )
+    }
+
+    if (!history || history.length === 0) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+                <BookDashed className="h-12 w-12 text-muted-foreground mb-4" />
+                <h2 className="text-xl font-semibold">No Quizzes Yet</h2>
+                <p className="text-muted-foreground max-w-sm">
+                    You haven't created any quizzes yet. Go to the dashboard to generate your first one!
+                </p>
+            </div>
+        )
+    }
     
   return (
     <Card>
@@ -107,30 +120,24 @@ export default function HistoryPage() {
               <TableRow>
                 <TableHead>Topic</TableHead>
                 <TableHead>Date Created</TableHead>
-                <TableHead>Last Result</TableHead>
+                <TableHead>Questions</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockHistory.map((quiz) => (
+              {history.map((quiz) => (
                 <TableRow key={quiz.id}>
                   <TableCell className="font-medium">{quiz.topic}</TableCell>
                   <TableCell>
                     <ClientFormattedDate dateString={quiz.dateCreated} />
                   </TableCell>
                   <TableCell>
-                    {quiz.lastResult !== undefined ? (
-                      <Badge variant={quiz.lastResult >= 60 ? "default" : "destructive"}>
-                        {quiz.lastResult}%
-                      </Badge>
-                    ) : (
-                      <Badge variant="outline">Not taken</Badge>
-                    )}
+                    {quiz.questions.length}
                   </TableCell>
                   <TableCell className="text-right">
                       <Dialog>
                           <DialogTrigger asChild>
-                              <Button variant="ghost" size="icon" disabled={!quiz.lastResult} aria-label="See Growth">
+                              <Button variant="ghost" size="icon" aria-label="See Growth" disabled>
                                   <BarChart2 className="h-4 w-4" />
                               </Button>
                           </DialogTrigger>
@@ -138,7 +145,7 @@ export default function HistoryPage() {
                               <DialogHeader>
                                   <DialogTitle>Growth for: {quiz.topic}</DialogTitle>
                                   <DialogDescription>
-                                    This chart shows your score progression for this topic over time.
+                                    This chart shows your score progression for this topic over time. (Feature coming soon!)
                                   </DialogDescription>
                               </DialogHeader>
                               <div className="h-60 w-full mt-4">
@@ -160,7 +167,7 @@ export default function HistoryPage() {
                               </div>
                           </DialogContent>
                       </Dialog>
-                    <Button variant="ghost" size="icon" aria-label="Download Quiz">
+                    <Button variant="ghost" size="icon" aria-label="Download Quiz" disabled>
                       <Download className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="icon" onClick={() => handlePlay(quiz.id)} aria-label="Play Quiz">

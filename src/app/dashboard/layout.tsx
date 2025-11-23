@@ -24,7 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LayoutDashboard, LogOut } from "lucide-react";
+import { LayoutDashboard, LogOut, History } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth, useUser } from "@/firebase";
@@ -47,7 +47,6 @@ export default function DashboardLayout({
   const handleLogout = async () => {
     if (user?.isAnonymous) {
       // Clear local storage for guest
-      // In a real app, you might want to be more specific about what you clear
       localStorage.clear();
     }
     
@@ -99,6 +98,20 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
+             {user && !user.isAnonymous && (
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  asChild
+                  isActive={pathname === "/dashboard/history"}
+                  tooltip="History"
+                >
+                  <Link href="/dashboard/history">
+                    <History />
+                    <span>History</span>
+                  </Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            )}
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
@@ -133,7 +146,7 @@ export default function DashboardLayout({
             <SidebarTrigger className="md:hidden" />
             <div className="w-full flex-1">
                 <h1 className="font-semibold text-lg">
-                    Dashboard
+                    {pathname.includes('/history') ? 'Quiz History' : 'Dashboard'}
                 </h1>
             </div>
             <ThemeToggle />
