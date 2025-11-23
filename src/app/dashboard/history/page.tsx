@@ -15,9 +15,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Download, Play, BarChart2, Loader2, AlertTriangle, BookDashed } from "lucide-react";
+import { Download, Play, BarChart2, Loader2, AlertTriangle, BookDashed, Trash2 } from "lucide-react";
 import type { Quiz } from "@/lib/types";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Bar, Tooltip } from "recharts";
 import {
@@ -28,9 +27,21 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
-import { useUser, useFirestore, useCollection, useMemoFirebase } from "@/firebase";
-import { collection } from 'firebase/firestore';
+import { useUser, useFirestore, useCollection, useMemoFirebase, deleteDocumentNonBlocking } from "@/firebase";
+import { collection, doc } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
 
 
 const mockProgressData = [
@@ -61,6 +72,7 @@ export default function HistoryPage() {
     const router = useRouter();
     const { user } = useUser();
     const firestore = useFirestore();
+    const { toast } = useToast();
 
     const quizzesQuery = useMemoFirebase(() => {
         if (!user || user.isAnonymous) return null;
@@ -71,6 +83,16 @@ export default function HistoryPage() {
 
     const handlePlay = (quizId: string) => {
         router.push(`/quiz/${quizId}`);
+    };
+
+    const handleDelete = (quizId: string) => {
+      if (!user) return;
+      const quizDocRef = doc(firestore, `users/${user.uid}/quizzes/${quizId}`);
+      deleteDocumentNonBlocking(quizDocRef);
+      toast({
+        title: "Quiz Deleted",
+        description: "The quiz has been removed from your history.",
+      });
     };
 
     if (isLoading) {
@@ -99,7 +121,7 @@ export default function HistoryPage() {
                 <BookDashed className="h-12 w-12 text-muted-foreground mb-4" />
                 <h2 className="text-xl font-semibold">No Quizzes Yet</h2>
                 <p className="text-muted-foreground max-w-sm">
-                    You haven't created any quizzes yet. Go to the dashboard to generate your first one!
+                    You haven't saved any quizzes yet. After generating a quiz, click the "Save" button to see it here.
                 </p>
             </div>
         )
@@ -129,10 +151,10 @@ export default function HistoryPage() {
                 <TableRow key={quiz.id}>
                   <TableCell className="font-medium">{quiz.topic}</TableCell>
                   <TableCell>
-                    <ClientFormattedDate dateString={quiz.dateCreated} />
+                    <ClientFormattedDate dateString={quiz.creationDate} />
                   </TableCell>
                   <TableCell>
-                    {quiz.questions.length}
+                    {JSON.parse(quiz.quizData).length}
                   </TableCell>
                   <TableCell className="text-right">
                       <Dialog>
@@ -173,6 +195,25 @@ export default function HistoryPage() {
                     <Button variant="ghost" size="icon" onClick={() => handlePlay(quiz.id)} aria-label="Play Quiz">
                       <Play className="h-4 w-4" />
                     </Button>
+                     <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button variant="ghost" size="icon" aria-label="Delete Quiz">
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              This action cannot be undone. This will permanently delete this quiz from your history.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleDelete(quiz.id)}>Delete</AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                   </TableCell>
                 </TableRow>
               ))}

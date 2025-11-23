@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Info, KeyRound, Bot, Edit, Loader2, Download, Play, Trash2 } from "lucide-react";
+import { Info, KeyRound, Bot, Edit, Loader2, Download, Play, Trash2, Save } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -66,6 +66,7 @@ export default function DashboardPage() {
     const [apiKey, setApiKey] = useState("");
     const [generatedQuiz, setGeneratedQuiz] = useState<Quiz | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [isQuizSaved, setIsQuizSaved] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
     const { user } = useUser();
@@ -74,13 +75,12 @@ export default function DashboardPage() {
     useEffect(() => {
         const lastQuizId = localStorage.getItem(LAST_QUIZ_ID_KEY);
         if (lastQuizId) {
-            // For guests, quiz is only in local storage.
-            // For logged-in users, it might be in local storage temporarily, but history is the source of truth.
             const quiz = getQuiz(lastQuizId);
             if (quiz) {
                 setGeneratedQuiz(quiz);
+                 // Reset saved state for a new quiz
+                setIsQuizSaved(false);
             } else {
-                // Clean up if the quiz ID is stale
                 localStorage.removeItem(LAST_QUIZ_ID_KEY);
             }
         }
@@ -100,13 +100,25 @@ export default function DashboardPage() {
         name: "questions"
     });
     
-    const saveQuizForUser = (quizData: Omit<Quiz, 'id'>) => {
-      if (user && !user.isAnonymous) {
-          const quizzesColRef = collection(firestore, `users/${user.uid}/quizzes`);
-          const dataToSave = { ...quizData, userId: user.uid };
-          // We don't block on this. It will save in the background.
-          addDocumentNonBlocking(quizzesColRef, dataToSave);
-      }
+    const handleSaveQuiz = () => {
+      if (!user || user.isAnonymous || !generatedQuiz) return;
+
+      const quizzesColRef = collection(firestore, `users/${user.uid}/quizzes`);
+      
+      const quizToSave = {
+        userId: user.uid,
+        topic: generatedQuiz.topic,
+        creationDate: generatedQuiz.dateCreated,
+        quizData: JSON.stringify(generatedQuiz.questions),
+      };
+
+      addDocumentNonBlocking(quizzesColRef, quizToSave);
+
+      setIsQuizSaved(true);
+      toast({
+        title: "Quiz Saved!",
+        description: "Your quiz has been saved to your history.",
+      });
     }
 
     async function onAiSubmit(values: z.infer<typeof aiFormSchema>) {
@@ -123,7 +135,9 @@ export default function DashboardPage() {
                 throw new Error("AI returned an invalid or empty quiz format.");
             }
 
-            const newQuizData: Omit<Quiz, 'id'> = {
+            const quizIdWithTimestamp = `quiz-${Date.now()}`;
+            const quizData: Quiz = {
+                id: quizIdWithTimestamp,
                 topic: values.topic,
                 dateCreated: new Date().toISOString(),
                 questions: result.quiz.map((q: QuizQuestion) => ({
@@ -133,21 +147,16 @@ export default function DashboardPage() {
                 }))
             };
 
-            const quizIdWithTimestamp = `quiz-${Date.now()}`;
-            const quizData: Quiz = {
-                ...newQuizData,
-                id: quizIdWithTimestamp,
-            }
-
-            saveQuiz(quizData); // Save to local storage for session persistence
+            saveQuiz(quizData);
             localStorage.setItem(LAST_QUIZ_ID_KEY, quizData.id);
             setGeneratedQuiz(quizData);
-            saveQuizForUser(newQuizData);
+            setIsQuizSaved(false); // Reset saved state for new quiz
 
             toast({ title: "Quiz Generated!", description: `Your quiz on ${values.topic} is ready.` });
         } catch (error) {
             console.error(error);
-            toast({ variant: "destructive", title: "Generation Failed", description: "Could not generate quiz. Please check your API key and prompt, or try again." });
+            const errorMessage = error instanceof Error ? error.message : "Could not generate quiz. Please check your API key and prompt, or try again.";
+            toast({ variant: "destructive", title: "Generation Failed", description: errorMessage });
         } finally {
             setIsGenerating(false);
         }
@@ -159,22 +168,18 @@ export default function DashboardPage() {
             answer: q.options[parseInt(q.answer, 10)]
         }));
 
-        const newQuizData: Omit<Quiz, 'id'> = {
+        const quizIdWithTimestamp = `quiz-manual-${Date.now()}`;
+        const quizData: Quiz = {
+            id: quizIdWithTimestamp,
             topic: values.topic,
             dateCreated: new Date().toISOString(),
             questions: processedQuestions
-        };
-
-        const quizIdWithTimestamp = `quiz-manual-${Date.now()}`;
-        const quizData: Quiz = {
-            ...newQuizData,
-            id: quizIdWithTimestamp
         };
         
         saveQuiz(quizData);
         localStorage.setItem(LAST_QUIZ_ID_KEY, quizData.id);
         setGeneratedQuiz(quizData);
-        saveQuizForUser(newQuizData);
+        setIsQuizSaved(false);
 
         toast({ title: "Quiz Created!", description: `Your quiz on ${values.topic} is ready.` });
     }
@@ -422,6 +427,11 @@ export default function DashboardPage() {
                                 <CardDescription>{generatedQuiz.questions.length} questions</CardDescription>
                             </div>
                             <div className="flex gap-2 flex-wrap">
+                                {user && !user.isAnonymous && (
+                                    <Button size="sm" variant="outline" onClick={handleSaveQuiz} disabled={isQuizSaved}>
+                                        <Save className="mr-2" /> {isQuizSaved ? 'Saved' : 'Save'}
+                                    </Button>
+                                )}
                                 <Button size="sm" variant="outline" onClick={handleDownload}><Download className="mr-2" /> Download</Button>
                                 <Button size="sm" onClick={handlePlay} className="bg-accent text-accent-foreground hover:bg-accent/90"><Play className="mr-2" /> Play Quiz</Button>
                                 <AlertDialog>
@@ -463,12 +473,3 @@ export default function DashboardPage() {
         </div>
     );
 }
-
-    
-
-    
-
-
-
-    
-
