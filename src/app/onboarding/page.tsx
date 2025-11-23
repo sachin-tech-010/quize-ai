@@ -15,40 +15,35 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useEffect, useState, Suspense } from "react";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { BrainCircuit } from "@/components/icons";
-import { useAuth, setDocumentNonBlocking, useFirestore } from "@/firebase";
+import { useAuth, setDocumentNonBlocking, useFirestore, useUser } from "@/firebase";
 import {
   isSignInWithEmailLink,
   signInWithEmailLink,
-  updatePassword,
 } from "firebase/auth";
 import { doc } from "firebase/firestore";
+
+// This page is now only for users who signed up via an email link and need to complete their profile.
+// Since we shifted to password-based sign up, this page is less critical but kept for any old links.
 
 const formSchema = z.object({
   fullName: z.string().min(2, "Full name must be at least 2 characters."),
   profession: z.string().optional(),
   age: z.coerce.number().int().positive().optional().or(z.literal('')),
-  password: z.string().min(6, "Password must be at least 6 characters.").optional().or(z.literal('')),
-  confirmPassword: z.string().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
 });
 
 
 function OnboardingComponent() {
     const [isLoading, setIsLoading] = useState(false);
     const [isVerifying, setIsVerifying] = useState(true);
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const router = useRouter();
-    const searchParams = useSearchParams();
     const { toast } = useToast();
     const auth = useAuth();
+    const { user } = useUser();
     const firestore = useFirestore();
 
     const form = useForm<z.infer<typeof formSchema>>({
@@ -57,49 +52,59 @@ function OnboardingComponent() {
             fullName: "",
             profession: "",
             age: "",
-            password: "",
-            confirmPassword: "",
         },
     });
 
     useEffect(() => {
-        const verifyEmailLink = async () => {
-            if (!auth || !isSignInWithEmailLink(auth, window.location.href)) {
-                setIsVerifying(false);
+        const verifyAndSetup = async () => {
+            // If there's already a user session and they have a name, they don't need onboarding.
+            if (auth.currentUser && auth.currentUser.displayName) {
+                router.replace('/dashboard');
                 return;
             }
-            let email = window.localStorage.getItem('emailForSignIn');
-            if (!email) {
-                email = window.prompt('Please provide your email for confirmation');
+
+            // This part handles the email link verification if it happens
+            if (isSignInWithEmailLink(auth, window.location.href)) {
+                 let email = window.localStorage.getItem('emailForSignIn');
                 if (!email) {
-                    toast({ variant: 'destructive', title: 'Email required' });
+                    email = window.prompt('Please provide your email for confirmation');
+                    if (!email) {
+                        toast({ variant: 'destructive', title: 'Email required' });
+                        router.push('/auth');
+                        return;
+                    }
+                }
+                try {
+                    await signInWithEmailLink(auth, email, window.location.href);
+                    window.localStorage.removeItem('emailForSignIn');
+                    // User is signed in, now they can complete their profile.
+                    toast({ title: 'Email verified!', description: 'Please complete your profile.' });
+                } catch (error) {
+                    console.error(error);
+                    toast({ variant: 'destructive', title: 'Verification failed' });
                     router.push('/auth');
                     return;
                 }
             }
-
-            try {
-                await signInWithEmailLink(auth, email, window.location.href);
-                window.localStorage.removeItem('emailForSignIn');
-                form.setValue('fullName', auth.currentUser?.displayName || '');
-                setIsVerifying(false);
-                toast({ title: 'Email verified!', description: 'Please complete your profile.' });
-            } catch (error) {
-                console.error(error);
-                toast({ variant: 'destructive', title: 'Verification failed' });
-                router.push('/auth');
-            }
+            setIsVerifying(false);
         };
 
-        verifyEmailLink();
-    }, [auth, router, toast, form]);
+        verifyAndSetup();
+    }, [auth, router, toast]);
+
+    useEffect(() => {
+        // Pre-fill form if user data is available
+        if (user) {
+            form.setValue('fullName', user.displayName || '');
+        }
+    }, [user, form]);
 
 
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setIsLoading(true);
 
-        const user = auth.currentUser;
-        if (!user) {
+        const currentUser = auth.currentUser;
+        if (!currentUser) {
             toast({ variant: "destructive", title: "Not authenticated" });
             setIsLoading(false);
             router.push('/auth');
@@ -107,26 +112,21 @@ function OnboardingComponent() {
         }
 
         try {
-            // 1. Update password if provided
-            if (values.password) {
-                await updatePassword(user, values.password);
-            }
-
-            // 2. Save user profile to Firestore
+            // Save user profile to Firestore
             const userProfile = {
-                id: user.uid,
-                gmailId: user.email,
+                id: currentUser.uid,
+                gmailId: currentUser.email,
                 fullName: values.fullName,
                 profession: values.profession || null,
                 age: values.age || null,
             };
             
-            const userDocRef = doc(firestore, 'users', user.uid);
+            const userDocRef = doc(firestore, 'users', currentUser.uid);
             setDocumentNonBlocking(userDocRef, userProfile, { merge: true });
 
             toast({
-                title: "Profile Created!",
-                description: "Welcome to QuizAI! Let's get started.",
+                title: "Profile Updated!",
+                description: "Welcome back to QuizAI!",
             });
 
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -164,7 +164,7 @@ function OnboardingComponent() {
                 <CardHeader>
                     <CardTitle className="text-2xl">Tell us about yourself</CardTitle>
                     <CardDescription>
-                        This will help us personalize your experience. You can also set a password for future logins.
+                        This information will help us personalize your experience.
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -211,48 +211,7 @@ function OnboardingComponent() {
                                     )}
                                 />
                             </div>
-                            <Card className="p-4 bg-secondary/50">
-                                <CardDescription className="mb-4">Set a password for easier sign-in next time (optional).</CardDescription>
-                                <div className="space-y-4">
-                                     <FormField
-                                        control={form.control}
-                                        name="password"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>New Password</FormLabel>
-                                                <FormControl>
-                                                    <div className="relative">
-                                                        <Input type={showPassword ? "text" : "password"} placeholder="At least 6 characters" {...field} />
-                                                        <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
-                                                          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                                        </Button>
-                                                    </div>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                    <FormField
-                                        control={form.control}
-                                        name="confirmPassword"
-                                        render={({ field }) => (
-                                            <FormItem>
-                                                <FormLabel>Confirm Password</FormLabel>
-                                                <FormControl>
-                                                    <div className="relative">
-                                                        <Input type={showConfirmPassword ? "text" : "password"} placeholder="Confirm your password" {...field} />
-                                                        <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowConfirmPassword(!showConfirmPassword)}>
-                                                          {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                                        </Button>
-                                                    </div>
-                                                </FormControl>
-                                                <FormMessage />
-                                            </FormItem>
-                                        )}
-                                    />
-                                </div>
-                            </Card>
-
+                            
                             <Button type="submit" className="w-full" disabled={isLoading}>
                                 {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 Complete Profile

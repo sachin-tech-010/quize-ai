@@ -18,50 +18,65 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import Link from "next/link";
 import { BrainCircuit } from "@/components/icons";
-import { useAuth } from "@/firebase";
+import { useAuth, setDocumentNonBlocking, useFirestore } from "@/firebase";
 import { 
-  sendSignInLinkToEmail,
+  createUserWithEmailAndPassword,
   signInAnonymously,
   signInWithEmailAndPassword,
-  isSignInWithEmailLink,
-  signInWithEmailLink
+  updateProfile,
 } from "firebase/auth";
 import { FirebaseError } from "firebase/app";
+import { doc } from "firebase/firestore";
 
 export default function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGuestLoading, setIsGuestLoading] = useState(false);
-  const [isEmailLinkSent, setIsEmailLinkSent] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
+  const firestore = useFirestore();
 
-  const handleEmailLinkSignUp = async (e: React.FormEvent) => {
+  const handleEmailPasswordSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email) return;
+    if (!email || !password || !fullName) return;
 
     setIsLoading(true);
     try {
-      await sendSignInLinkToEmail(auth, email, {
-        url: `${window.location.origin}/onboarding`,
-        handleCodeInApp: true,
-      });
-      window.localStorage.setItem('emailForSignIn', email);
-      setIsEmailLinkSent(true);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Update Firebase Auth profile
+      await updateProfile(user, { displayName: fullName });
+
+      // Create user profile in Firestore
+      const userProfile = {
+          id: user.uid,
+          gmailId: user.email,
+          fullName: fullName,
+          profession: null,
+          age: null,
+      };
+      
+      const userDocRef = doc(firestore, 'users', user.uid);
+      setDocumentNonBlocking(userDocRef, userProfile);
+
       toast({
-        title: "Check your email",
-        description: `A sign-in link has been sent to ${email}.`,
+        title: "Account Created!",
+        description: "Welcome to QuizAI!",
       });
+
+      router.push("/dashboard");
+
     } catch (error) {
-      console.error(error);
       const firebaseError = error as FirebaseError;
       toast({
         variant: "destructive",
-        title: "Uh oh! Something went wrong.",
-        description: firebaseError.message || "Could not send sign-in link.",
+        title: "Sign up failed",
+        description: firebaseError.message || "Please check your details and try again.",
       });
     } finally {
       setIsLoading(false);
@@ -115,9 +130,9 @@ export default function AuthPage() {
       </div>
       <Card className="w-full max-w-sm shadow-2xl">
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Welcome Back</CardTitle>
+          <CardTitle className="text-2xl">Welcome</CardTitle>
           <CardDescription>
-            Choose your method to get started.
+            Sign in or create an account to get started.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -151,16 +166,14 @@ export default function AuthPage() {
               </form>
             </TabsContent>
             <TabsContent value="signup" className="pt-4">
-              {isEmailLinkSent ? (
-                <div className="text-center p-4 rounded-md bg-secondary">
-                  <Mail className="mx-auto h-12 w-12 text-primary" />
-                  <h3 className="mt-4 text-lg font-semibold">Check your inbox!</h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    A sign-in link has been sent to <span className="font-medium text-foreground">{email}</span>. Click the link to complete your sign-up.
-                  </p>
-                </div>
-              ) : (
-                <form onSubmit={handleEmailLinkSignUp} className="space-y-4">
+                <form onSubmit={handleEmailPasswordSignUp} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name-signup">Full Name</Label>
+                     <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input id="name-signup" type="text" placeholder="John Doe" required value={fullName} onChange={(e) => setFullName(e.target.value)} className="pl-10" />
+                    </div>
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="email-signup">Email</Label>
                      <div className="relative">
@@ -168,11 +181,20 @@ export default function AuthPage() {
                       <Input id="email-signup" type="email" placeholder="you@example.com" required value={email} onChange={(e) => setEmail(e.target.value)} className="pl-10" />
                     </div>
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password-signup">Password</Label>
+                    <div className="relative">
+                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input id="password-signup" type={showPassword ? "text" : "password"} placeholder="At least 6 characters" required value={password} onChange={(e) => setPassword(e.target.value)} className="pl-10" />
+                       <Button type="button" variant="ghost" size="icon" className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7" onClick={() => setShowPassword(!showPassword)}>
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? <Loader2 className="animate-spin" /> : "Sign Up with Email Link"}
+                    {isLoading ? <Loader2 className="animate-spin" /> : "Create Account"}
                   </Button>
                 </form>
-              )}
             </TabsContent>
           </Tabs>
         </CardContent>
