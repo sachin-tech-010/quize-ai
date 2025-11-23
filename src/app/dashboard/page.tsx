@@ -103,8 +103,9 @@ export default function DashboardPage() {
     const saveQuizForUser = (quizData: Omit<Quiz, 'id'>) => {
       if (user && !user.isAnonymous) {
           const quizzesColRef = collection(firestore, `users/${user.uid}/quizzes`);
+          const dataToSave = { ...quizData, userId: user.uid };
           // We don't block on this. It will save in the background.
-          addDocumentNonBlocking(quizzesColRef, quizData);
+          addDocumentNonBlocking(quizzesColRef, dataToSave);
       }
     }
 
@@ -118,7 +119,7 @@ export default function DashboardPage() {
         try {
             const result = await generateQuizFromTopic(values);
             
-             if (!result || !result.quiz || !Array.isArray(result.quiz) || result.quiz.length === 0) {
+            if (!result || !result.quiz || !Array.isArray(result.quiz) || result.quiz.length === 0) {
                 throw new Error("AI returned an invalid or empty quiz format.");
             }
 
@@ -470,3 +471,4 @@ export default function DashboardPage() {
 
 
     
+
