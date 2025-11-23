@@ -24,7 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LayoutDashboard, History, LogOut, User } from "lucide-react";
+import { LayoutDashboard, LogOut } from "lucide-react";
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { useAuth, useUser } from "@/firebase";
@@ -99,18 +99,6 @@ export default function DashboardLayout({
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname.startsWith("/dashboard/history")}
-                tooltip="Quiz History"
-              >
-                <Link href="/dashboard/history">
-                  <History />
-                  <span>Quiz History</span>
-                </Link>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
           </SidebarMenu>
         </SidebarContent>
         <SidebarFooter>
@@ -145,7 +133,7 @@ export default function DashboardLayout({
             <SidebarTrigger className="md:hidden" />
             <div className="w-full flex-1">
                 <h1 className="font-semibold text-lg">
-                    {pathname.includes('history') ? 'Quiz History' : 'Dashboard'}
+                    Dashboard
                 </h1>
             </div>
             <ThemeToggle />

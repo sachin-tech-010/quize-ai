@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Info, KeyRound, Bot, Edit, Loader2, Save, Download, Play, Trash2 } from "lucide-react";
+import { Info, KeyRound, Bot, Edit, Loader2, Download, Play, Trash2 } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -129,10 +129,6 @@ export default function DashboardPage() {
         saveQuiz(quizData);
         setGeneratedQuiz(quizData);
         toast({ title: "Quiz Created!", description: `Your quiz on ${values.topic} is ready.` });
-    }
-
-    const handleSave = () => {
-        toast({ title: "Quiz Saved!", description: "Your quiz has been added to your history." });
     }
     
     const handleDownload = () => {
@@ -377,7 +373,6 @@ export default function DashboardPage() {
                                 <CardDescription>{generatedQuiz.questions.length} questions</CardDescription>
                             </div>
                             <div className="flex gap-2 flex-wrap">
-                                <Button size="sm" onClick={handleSave}><Save className="mr-2" /> Save</Button>
                                 <Button size="sm" variant="outline" onClick={handleDownload}><Download className="mr-2" /> Download</Button>
                                 <Button size="sm" onClick={handlePlay} className="bg-accent text-accent-foreground hover:bg-accent/90"><Play className="mr-2" /> Play Quiz</Button>
                                 <AlertDialog>
@@ -423,3 +418,4 @@ export default function DashboardPage() {
     
 
     
+
