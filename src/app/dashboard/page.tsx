@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardContent,
@@ -39,7 +39,7 @@ import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useRouter } from "next/navigation";
-import { saveQuiz } from "@/lib/quiz-store";
+import { getQuiz, saveQuiz } from "@/lib/quiz-store";
 
 
 const aiFormSchema = z.object({
@@ -57,6 +57,8 @@ const manualFormSchema = z.object({
     })).min(1, "Please add at least one question.")
 });
 
+const LAST_QUIZ_ID_KEY = 'lastGeneratedQuizId';
+
 
 export default function DashboardPage() {
     const [apiKey, setApiKey] = useState("");
@@ -64,6 +66,19 @@ export default function DashboardPage() {
     const [isGenerating, setIsGenerating] = useState(false);
     const { toast } = useToast();
     const router = useRouter();
+
+    useEffect(() => {
+        const lastQuizId = localStorage.getItem(LAST_QUIZ_ID_KEY);
+        if (lastQuizId) {
+            const quiz = getQuiz(lastQuizId);
+            if (quiz) {
+                setGeneratedQuiz(quiz);
+            } else {
+                // Clean up if the quiz ID is stale
+                localStorage.removeItem(LAST_QUIZ_ID_KEY);
+            }
+        }
+    }, []);
 
     const aiForm = useForm<z.infer<typeof aiFormSchema>>({
         resolver: zodResolver(aiFormSchema),
@@ -89,7 +104,7 @@ export default function DashboardPage() {
         try {
             const result = await generateQuizFromTopic(values);
             
-            if (!result || !Array.isArray(result.quiz) || result.quiz.length === 0) {
+             if (!result || !result.quiz || !Array.isArray(result.quiz) || result.quiz.length === 0) {
                 throw new Error("AI returned an invalid or empty quiz format.");
             }
 
@@ -104,6 +119,7 @@ export default function DashboardPage() {
                 }))
             };
             saveQuiz(quizData);
+            localStorage.setItem(LAST_QUIZ_ID_KEY, quizData.id);
             setGeneratedQuiz(quizData);
             toast({ title: "Quiz Generated!", description: `Your quiz on ${values.topic} is ready.` });
         } catch (error) {
@@ -127,6 +143,7 @@ export default function DashboardPage() {
             questions: processedQuestions
         };
         saveQuiz(quizData);
+        localStorage.setItem(LAST_QUIZ_ID_KEY, quizData.id);
         setGeneratedQuiz(quizData);
         toast({ title: "Quiz Created!", description: `Your quiz on ${values.topic} is ready.` });
     }
@@ -159,6 +176,7 @@ export default function DashboardPage() {
     }
 
     const handleDiscard = () => {
+        localStorage.removeItem(LAST_QUIZ_ID_KEY);
         setGeneratedQuiz(null);
         toast({ title: "Quiz Discarded" });
     }
@@ -419,3 +437,6 @@ export default function DashboardPage() {
 
     
 
+
+
+    
