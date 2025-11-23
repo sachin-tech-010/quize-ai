@@ -136,9 +136,11 @@ export default function DashboardPage() {
             }
 
             const quizIdWithTimestamp = `quiz-${Date.now()}`;
+            const quizTopic = values.topic.split(/\s+/).slice(0, 2).join(' ');
+
             const quizData: Quiz = {
                 id: quizIdWithTimestamp,
-                topic: values.topic,
+                topic: quizTopic,
                 dateCreated: new Date().toISOString(),
                 questions: result.quiz.map((q: QuizQuestion) => ({
                     question: q.question,
@@ -152,7 +154,7 @@ export default function DashboardPage() {
             setGeneratedQuiz(quizData);
             setIsQuizSaved(false); // Reset saved state for new quiz
 
-            toast({ title: "Quiz Generated!", description: `Your quiz on ${values.topic} is ready.` });
+            toast({ title: "Quiz Generated!", description: `Your quiz on ${quizTopic} is ready.` });
         } catch (error) {
             console.error(error);
             const errorMessage = error instanceof Error ? error.message : "Could not generate quiz. Please check your API key and prompt, or try again.";
@@ -169,9 +171,11 @@ export default function DashboardPage() {
         }));
 
         const quizIdWithTimestamp = `quiz-manual-${Date.now()}`;
+        const quizTopic = values.topic.split(/\s+/).slice(0, 2).join(' ');
+
         const quizData: Quiz = {
             id: quizIdWithTimestamp,
-            topic: values.topic,
+            topic: quizTopic,
             dateCreated: new Date().toISOString(),
             questions: processedQuestions
         };
@@ -181,7 +185,7 @@ export default function DashboardPage() {
         setGeneratedQuiz(quizData);
         setIsQuizSaved(false);
 
-        toast({ title: "Quiz Created!", description: `Your quiz on ${values.topic} is ready.` });
+        toast({ title: "Quiz Created!", description: `Your quiz on ${quizTopic} is ready.` });
     }
     
     const handleDownload = () => {
@@ -473,3 +477,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
