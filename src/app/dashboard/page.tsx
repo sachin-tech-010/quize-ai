@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -33,7 +34,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { generateQuizFromTopic } from "@/ai/flows/generate-quiz-from-topic";
-import type { Quiz } from "@/lib/types";
+import type { Quiz, QuizQuestion } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
@@ -88,16 +89,16 @@ export default function DashboardPage() {
         try {
             const result = await generateQuizFromTopic(values);
             const parsedQuiz = JSON.parse(result.quiz);
-
-            if (!parsedQuiz || !Array.isArray(parsedQuiz.quiz)) {
-                throw new Error("AI returned an invalid quiz format.");
+            
+            if (!parsedQuiz || !Array.isArray(parsedQuiz.quiz) || parsedQuiz.quiz.length === 0) {
+                throw new Error("AI returned an invalid or empty quiz format.");
             }
 
             const quizData: Quiz = {
                 id: `quiz-${Date.now()}`,
                 topic: values.topic,
                 dateCreated: new Date().toISOString(),
-                questions: parsedQuiz.quiz.map((q: any) => ({
+                questions: parsedQuiz.quiz.map((q: QuizQuestion) => ({
                     question: q.question,
                     options: q.options,
                     answer: q.answer
@@ -137,14 +138,24 @@ export default function DashboardPage() {
     
     const handleDownload = () => {
         if (!generatedQuiz) return;
-        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(generatedQuiz, null, 2));
+
+        let content = `Topic: ${generatedQuiz.topic}\n\n`;
+        generatedQuiz.questions.forEach((q, i) => {
+            content += `${i + 1}. ${q.question}\n`;
+            q.options.forEach(opt => {
+                content += `   - ${opt}\n`;
+            });
+            content += `Answer: ${q.answer}\n\n`;
+        });
+
+        const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(content);
         const downloadAnchorNode = document.createElement('a');
-        downloadAnchorNode.setAttribute("href",     dataStr);
-        downloadAnchorNode.setAttribute("download", `${generatedQuiz.topic}_quiz.json`);
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `${generatedQuiz.topic.replace(/ /g, '_')}_quiz.txt`);
         document.body.appendChild(downloadAnchorNode);
         downloadAnchorNode.click();
         downloadAnchorNode.remove();
-        toast({ title: "Download Started", description: "Your quiz is being downloaded as a JSON file." });
+        toast({ title: "Download Started", description: "Your quiz is being downloaded as a text file." });
     }
 
     const handlePlay = () => {
@@ -409,5 +420,7 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
 
     
