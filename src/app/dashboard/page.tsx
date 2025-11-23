@@ -88,6 +88,11 @@ export default function DashboardPage() {
         try {
             const result = await generateQuizFromTopic(values);
             const parsedQuiz = JSON.parse(result.quiz);
+
+            if (!parsedQuiz || !Array.isArray(parsedQuiz.quiz)) {
+                throw new Error("AI returned an invalid quiz format.");
+            }
+
             const quizData: Quiz = {
                 id: `quiz-${Date.now()}`,
                 topic: values.topic,
@@ -103,7 +108,7 @@ export default function DashboardPage() {
             toast({ title: "Quiz Generated!", description: `Your quiz on ${values.topic} is ready.` });
         } catch (error) {
             console.error(error);
-            toast({ variant: "destructive", title: "Generation Failed", description: "Could not generate quiz. Please check your API key and prompt." });
+            toast({ variant: "destructive", title: "Generation Failed", description: "Could not generate quiz. Please check your API key and prompt, or try again." });
         } finally {
             setIsGenerating(false);
         }
@@ -404,3 +409,5 @@ export default function DashboardPage() {
         </div>
     );
 }
+
+    
