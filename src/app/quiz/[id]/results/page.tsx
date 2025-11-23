@@ -35,6 +35,7 @@ function ResultsComponent() {
   const [summary, setSummary] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSummaryLoading, setIsSummaryLoading] = useState(true);
+  const [isDataReady, setIsDataReady] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -44,9 +45,11 @@ function ResultsComponent() {
       if (loadedQuiz && answersParam) {
           setQuiz(loadedQuiz);
           try {
-              setUserAnswers(JSON.parse(answersParam));
+              const parsedAnswers = JSON.parse(answersParam);
+              setUserAnswers(parsedAnswers);
+              setIsDataReady(true);
           } catch {
-              // Handle parsing error
+              setIsDataReady(false);
           }
       }
     }
@@ -75,7 +78,7 @@ function ResultsComponent() {
 
   useEffect(() => {
     async function fetchSummary() {
-      if (quiz) {
+      if (isDataReady && quiz && correctAnswersList.length > 0 && userAnswersList.length > 0) {
         setIsSummaryLoading(true);
         try {
           const result = await summarizeQuizResults({
@@ -90,17 +93,21 @@ function ResultsComponent() {
         } finally {
           setIsSummaryLoading(false);
         }
+      } else if (isDataReady) {
+        // Data might be ready but lists are empty, indicates an issue but we can stop loading.
+        setIsSummaryLoading(false);
+        setSummary("Could not generate AI summary due to missing quiz data.");
       }
     }
     fetchSummary();
-  }, [quiz, correctAnswersList, userAnswersList]);
+  }, [isDataReady, quiz, correctAnswersList, userAnswersList]);
 
 
   if (isLoading) {
     return <div className="flex min-h-dvh items-center justify-center"><Loader2 className="h-12 w-12 animate-spin text-primary" /></div>;
   }
 
-  if (!quiz) {
+  if (!quiz || !isDataReady) {
     return <div className="flex min-h-dvh flex-col items-center justify-center text-center p-4">
         <AlertTriangle className="h-12 w-12 text-destructive mb-4" />
         <h1 className="text-2xl font-bold">Results Not Found</h1>
