@@ -1,5 +1,5 @@
 "use client";
-
+import React from 'react';
 import {
   Card,
   CardContent,
@@ -68,6 +68,23 @@ const mockProgressData = [
     { name: 'Attempt 4', score: 90 },
 ];
 
+function ClientFormattedDate({ dateString }: { dateString: string }) {
+  const [formattedDate, setFormattedDate] = React.useState('');
+
+  React.useEffect(() => {
+    // This code runs only on the client, after hydration
+    setFormattedDate(new Date(dateString).toLocaleDateString());
+  }, [dateString]);
+
+  // Render a placeholder on the server and initial client render
+  if (!formattedDate) {
+    return null; // Or a loading skeleton
+  }
+
+  return <>{formattedDate}</>;
+}
+
+
 export default function HistoryPage() {
     const router = useRouter();
 
@@ -99,7 +116,7 @@ export default function HistoryPage() {
                 <TableRow key={quiz.id}>
                   <TableCell className="font-medium">{quiz.topic}</TableCell>
                   <TableCell>
-                    {new Date(quiz.dateCreated).toLocaleDateString()}
+                    <ClientFormattedDate dateString={quiz.dateCreated} />
                   </TableCell>
                   <TableCell>
                     {quiz.lastResult !== undefined ? (
