@@ -43,7 +43,7 @@ const faqs = [
     },
     {
         question: "What formats can I download my quizzes in?",
-        answer: "You can download your quizzes in multiple formats, including JSON for developers. PDF and text formats are coming soon!"
+        answer: "You can download your quizzes as a simple .txt file, which can be opened by any text editor or word processor."
     }
 ]
 
@@ -53,7 +53,7 @@ export default function Home() {
       <SiteHeader />
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48">
+        <section className="w-full py-12 md:py-24 lg:py-32 xl:py-48 bg-gradient-main">
           <div className="container px-4 md:px-6">
             <div className="grid gap-6 lg:grid-cols-[1fr_400px] lg:gap-12 xl:grid-cols-[1fr_600px]">
               <div className="flex flex-col justify-center space-y-4">
@@ -66,7 +66,7 @@ export default function Home() {
                   </p>
                 </div>
                 <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button asChild size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  <Button asChild size="lg">
                     <Link href="/auth">Get Started Now</Link>
                   </Button>
                 </div>

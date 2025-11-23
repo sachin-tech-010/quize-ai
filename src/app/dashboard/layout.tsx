@@ -141,8 +141,8 @@ export default function DashboardLayout({
           </DropdownMenu>
         </SidebarFooter>
       </Sidebar>
-      <div className="flex flex-col flex-1 min-h-dvh">
-         <header className="flex h-14 items-center gap-4 border-b bg-card px-4 md:h-[60px] md:px-6 sticky top-0 z-30">
+      <div className="flex flex-col flex-1 min-h-dvh bg-gradient-main">
+         <header className="flex h-14 items-center gap-4 border-b bg-card/50 backdrop-blur-sm px-4 md:h-[60px] md:px-6 sticky top-0 z-30">
             <SidebarTrigger className="md:hidden" />
             <div className="w-full flex-1">
                 <h1 className="font-semibold text-lg">
@@ -151,7 +151,7 @@ export default function DashboardLayout({
             </div>
             <ThemeToggle />
         </header>
-        <main className="flex-1 p-4 sm:p-6 lg:p-8 bg-secondary/50">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8">
             {children}
         </main>
       </div>

@@ -62,7 +62,7 @@ export default function AuthPage() {
       };
       
       const userDocRef = doc(firestore, 'users', user.uid);
-      setDocumentNonBlocking(userDocRef, userProfile);
+      setDocumentNonBlocking(userDocRef, userProfile, { merge: false });
 
       toast({
         title: "Account Created!",
@@ -121,7 +121,7 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="flex min-h-dvh items-center justify-center bg-secondary p-4">
+    <div className="flex min-h-dvh items-center justify-center bg-gradient-main p-4">
       <div className="absolute top-4 left-4 md:top-6 md:left-6">
         <Link href="/" className="flex items-center space-x-2 text-foreground">
           <BrainCircuit className="h-6 w-6 text-primary" />

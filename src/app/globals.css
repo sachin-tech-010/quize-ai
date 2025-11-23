@@ -9,6 +9,8 @@ body {
 @layer base {
   :root {
     --background: 204 82% 94%; /* light blue #E3F2FD */
+    --background-start-rgb: 227, 242, 253;
+    --background-end-rgb: 232, 234, 246;
     --foreground: 222.2 84% 4.9%;
     --card: 204 82% 98%; /* Lighter blue for cards */
     --card-foreground: 222.2 84% 4.9%;
@@ -44,6 +46,8 @@ body {
   }
   .dark {
     --background: 222.2 84% 4.9%;
+    --background-start-rgb: 20, 20, 30;
+    --background-end-rgb: 30, 25, 45;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
     --card-foreground: 210 40% 98%;
@@ -85,4 +89,8 @@ body {
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.bg-gradient-main {
+    background-image: linear-gradient(to bottom right, rgb(var(--background-start-rgb)), rgb(var(--background-end-rgb)));
 }
