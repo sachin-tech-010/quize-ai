@@ -1,3 +1,4 @@
+
 "use client";
 import React from 'react';
 import {
@@ -95,6 +96,14 @@ export default function HistoryPage() {
       });
     };
 
+    const truncateTopic = (topic: string, wordLimit: number = 5) => {
+        const words = topic.split(' ');
+        if (words.length > wordLimit) {
+            return words.slice(0, wordLimit).join(' ') + '...';
+        }
+        return topic;
+    };
+
     if (isLoading) {
         return (
             <div className="flex items-center justify-center h-full">
@@ -149,7 +158,7 @@ export default function HistoryPage() {
             <TableBody>
               {history.map((quiz) => (
                 <TableRow key={quiz.id}>
-                  <TableCell className="font-medium">{quiz.topic}</TableCell>
+                  <TableCell className="font-medium">{truncateTopic(quiz.topic)}</TableCell>
                   <TableCell>
                     <ClientFormattedDate dateString={quiz.creationDate} />
                   </TableCell>
