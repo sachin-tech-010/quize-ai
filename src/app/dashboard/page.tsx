@@ -88,9 +88,8 @@ export default function DashboardPage() {
         setGeneratedQuiz(null);
         try {
             const result = await generateQuizFromTopic(values);
-            const parsedQuiz = JSON.parse(result.quiz);
             
-            if (!parsedQuiz || !Array.isArray(parsedQuiz.quiz) || parsedQuiz.quiz.length === 0) {
+            if (!result || !Array.isArray(result.quiz) || result.quiz.length === 0) {
                 throw new Error("AI returned an invalid or empty quiz format.");
             }
 
@@ -98,7 +97,7 @@ export default function DashboardPage() {
                 id: `quiz-${Date.now()}`,
                 topic: values.topic,
                 dateCreated: new Date().toISOString(),
-                questions: parsedQuiz.quiz.map((q: QuizQuestion) => ({
+                questions: result.quiz.map((q: QuizQuestion) => ({
                     question: q.question,
                     options: q.options,
                     answer: q.answer

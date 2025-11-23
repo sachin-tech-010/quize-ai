@@ -19,8 +19,14 @@ const GenerateQuizFromTopicInputSchema = z.object({
 
 export type GenerateQuizFromTopicInput = z.infer<typeof GenerateQuizFromTopicInputSchema>;
 
+const QuizQuestionSchema = z.object({
+  question: z.string(),
+  options: z.array(z.string()),
+  answer: z.string(),
+});
+
 const GenerateQuizFromTopicOutputSchema = z.object({
-  quiz: z.string().describe('The generated quiz in JSON format.'),
+  quiz: z.array(QuizQuestionSchema).describe('An array of quiz questions.'),
 });
 
 export type GenerateQuizFromTopicOutput = z.infer<typeof GenerateQuizFromTopicOutputSchema>;
@@ -33,26 +39,9 @@ const prompt = ai.definePrompt({
   name: 'generateQuizFromTopicPrompt',
   input: {schema: GenerateQuizFromTopicInputSchema},
   output: {schema: GenerateQuizFromTopicOutputSchema},
-  prompt: `You are a quiz generator. Generate a quiz on the topic of {{topic}} with {{numQuestions}} questions and a difficulty of {{difficulty}}. The quiz should be returned in JSON format.
-
-Example Quiz Format:
-{
-  "quiz": [
-    {
-      "question": "Question 1",
-      "options": ["Option 1", "Option 2", "Option 3", "Option 4"],
-      "answer": "Option 1"
-    },
-    {
-      "question": "Question 2",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "answer": "Option B"
-    }
-  ]
-}
-
-Ensure the generated JSON is valid and follows this format.
-`,
+  prompt: `You are a quiz generator. Generate a quiz on the topic of {{topic}} with {{numQuestions}} questions and a difficulty of {{difficulty}}.
+You MUST return the quiz in a valid JSON object that adheres to the output schema.
+Do not include any other text or formatting outside of the JSON object.`,
 });
 
 const generateQuizFromTopicFlow = ai.defineFlow(
