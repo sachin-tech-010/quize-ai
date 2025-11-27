@@ -49,6 +49,11 @@ const generateQuizFromTopicFlow = ai.defineFlow(
     name: 'generateQuizFromTopicFlow',
     inputSchema: GenerateQuizFromTopicInputSchema,
     outputSchema: GenerateQuizFromTopicOutputSchema,
+    config: {
+      // Ensures consistent behavior across environments
+      // The googleAI plugin will automatically use the GEMINI_API_KEY
+      // environment variable when set.
+    }
   },
   async input => {
     const {output} = await prompt(input);
