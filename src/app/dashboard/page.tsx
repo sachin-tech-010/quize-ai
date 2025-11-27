@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Info, KeyRound, Bot, Edit, Loader2, Download, Play, Trash2, Save } from "lucide-react";
+import { Info, Bot, Edit, Loader2, Download, Play, Trash2, Save } from "lucide-react";
 import {
   Tooltip,
   TooltipContent,
@@ -63,7 +63,6 @@ const LAST_QUIZ_ID_KEY = 'lastGeneratedQuizId';
 
 
 export default function DashboardPage() {
-    const [apiKey, setApiKey] = useState("");
     const [generatedQuiz, setGeneratedQuiz] = useState<Quiz | null>(null);
     const [isGenerating, setIsGenerating] = useState(false);
     const [isQuizSaved, setIsQuizSaved] = useState(false);
@@ -122,10 +121,6 @@ export default function DashboardPage() {
     }
 
     async function onAiSubmit(values: z.infer<typeof aiFormSchema>) {
-        if (!apiKey) {
-            toast({ variant: "destructive", title: "API Key Required", description: "Please enter your Gemini API key." });
-            return;
-        }
         setIsGenerating(true);
         setGeneratedQuiz(null);
         try {
@@ -157,7 +152,12 @@ export default function DashboardPage() {
             toast({ title: "Quiz Generated!", description: `Your quiz on ${quizTopic} is ready.` });
         } catch (error) {
             console.error(error);
-            const errorMessage = error instanceof Error ? error.message : "Could not generate quiz. Please check your API key and prompt, or try again.";
+            let errorMessage = "Could not generate quiz. Please try again later.";
+            if (error instanceof Error && error.message.includes('GEMINI_API_KEY')) {
+                 errorMessage = "The AI generator is not configured. The site owner needs to set up the Gemini API key.";
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
             toast({ variant: "destructive", title: "Generation Failed", description: errorMessage });
         } finally {
             setIsGenerating(false);
@@ -225,44 +225,25 @@ export default function DashboardPage() {
         <div className="grid gap-8">
             <Card>
                 <CardHeader>
-                    <CardTitle>API Key Management</CardTitle>
+                    <CardTitle>Create a New Quiz</CardTitle>
                     <CardDescription>
-                        Enter your Gemini API key to enable AI-powered quiz generation.
-                        Your key is only used for your current session and is not stored on our servers.
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex gap-2 items-end">
-                        <div className="flex-1 space-y-2">
-                             <Label htmlFor="api-key">Gemini API Key</Label>
-                             <div className="relative">
-                                <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                <Input
-                                    id="api-key"
-                                    type="password"
-                                    value={apiKey}
-                                    onChange={(e) => setApiKey(e.target.value)}
-                                    placeholder="Enter your API key"
-                                    className="pl-10"
-                                />
-                             </div>
-                        </div>
+                        Generate a quiz with AI or create your own manually. For AI generation to work, the site needs a configured Gemini API key. 
                         <TooltipProvider>
                             <Tooltip>
                                 <TooltipTrigger asChild>
-                                    <Button variant="outline" size="icon" asChild>
+                                    <Button variant="link" size="icon" asChild className="inline-flex ml-1 -mt-1 h-5 w-5">
                                         <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">
                                             <Info className="h-4 w-4" />
                                         </a>
                                     </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>
-                                    <p>Get your API key from Google AI Studio.</p>
+                                    <p>Get a Gemini API key from Google AI Studio.</p>
                                 </TooltipContent>
                             </Tooltip>
                         </TooltipProvider>
-                    </div>
-                </CardContent>
+                    </CardDescription>
+                </CardHeader>
             </Card>
 
             <Tabs defaultValue="ai" className="w-full">

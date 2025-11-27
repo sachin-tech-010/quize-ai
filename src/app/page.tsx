@@ -35,11 +35,11 @@ const faqs = [
     },
     {
         question: "Do I need my own API key?",
-        answer: "Yes, to use the AI generation feature, you need to provide your own Gemini API key. This ensures that you have control over your API usage. We provide a link and instructions on how to get one for free from Google AI Studio."
+        answer: "Yes, to use the AI generation feature, the site owner needs to set up a Gemini API key. This is done by setting a `GEMINI_API_KEY` environment variable on the deployment platform (like Vercel or Firebase App Hosting)."
     },
     {
         question: "Is my data secure?",
-        answer: "Absolutely. Your API key is stored securely and is only tied to your logged-in session. Your created quizzes and results are private to your account."
+        answer: "Absolutely. Quizzes you create and your results are private to your account. The API key is stored securely as a server-side secret and is not exposed to users."
     },
     {
         question: "What formats can I download my quizzes in?",
